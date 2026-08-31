@@ -6,39 +6,17 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from app.errors import SessionExpired
-
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
 
-    # The whole Cookie header, pasted verbatim. Only li_at and JSESSIONID are
-    # load-bearing for a request to succeed; bcookie, bscookie, lidc and _pxvid
-    # are device-continuity identifiers and cost nothing to carry.
-    li_cookie_header: str = ""
-
+    # No LinkedIn credentials here. Callers supply their own cookies per
+    # request, which keeps the deployment credential-free and means the user
+    # agent always matches the browser the cookies came from.
     request_timeout: float = 15.0
     log_level: str = "INFO"
-
-    @property
-    def cookies(self) -> dict[str, str]:
-        return parse_cookie_header(self.li_cookie_header)
-
-    @property
-    def csrf_token(self) -> str:
-        return csrf_token_for(self.cookies)
-
-    def require_session(self) -> dict[str, str]:
-        """Cookies for an outbound call, or a clear failure if unconfigured."""
-        cookies = self.cookies
-        if not cookies.get("li_at") or not cookies.get("JSESSIONID"):
-            raise SessionExpired(
-                "No LinkedIn session configured.",
-                detail="Paste the whole Cookie header into LI_COOKIE_HEADER.",
-            )
-        return cookies
 
 
 def parse_cookie_header(header: str) -> dict[str, str]:

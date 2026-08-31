@@ -20,7 +20,6 @@ from app.errors import (
 )
 from app.linkedin.constants import (
     ACCEPT,
-    BROWSER_USER_AGENT,
     FORBIDDEN_HEADERS,
     PROFILE_UNREACHABLE_MARKER,
     REFERER,
@@ -36,12 +35,14 @@ class LinkedInClient:
         self,
         cookies: dict[str, str],
         csrf_token: str,
+        user_agent: str,
         timeout: float = 15.0,
-        user_agent: str | None = None,
     ):
         self._csrf_token = csrf_token
-        # Must match the browser the cookies were issued to.
-        self._user_agent = user_agent or BROWSER_USER_AGENT
+        # Required, not defaulted. LinkedIn binds a session to the browser it
+        # was issued to, so a stand-in value invalidates the session instead of
+        # failing — the worst way for a default to be wrong.
+        self._user_agent = user_agent
         # Seed the jar once. Never pass cookies= per request: httpx merges the
         # two sources and sends every cookie twice, which LinkedIn reads as a
         # hijacked session and responds to by invalidating it everywhere.
@@ -55,17 +56,14 @@ class LinkedInClient:
 
     @classmethod
     def from_cookie_header(
-        cls,
-        header: str,
-        timeout: float = 15.0,
-        user_agent: str | None = None,
+        cls, header: str, user_agent: str, timeout: float = 15.0
     ) -> LinkedInClient:
         cookies = parse_cookie_header(header)
         return cls(
             cookies=cookies,
             csrf_token=csrf_token_for(cookies),
-            timeout=timeout,
             user_agent=user_agent,
+            timeout=timeout,
         )
 
     def _headers(self) -> dict[str, str]:

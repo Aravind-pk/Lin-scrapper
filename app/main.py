@@ -7,13 +7,12 @@ import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from app.config import Settings, get_settings
+from app.config import get_settings
 from app.errors import LinkedInAPIError
-from app.linkedin.client import LinkedInClient
 from app.linkedin.constants import DECORATION_ID
 from app.linkedin.router import router as linkedin_router
 
@@ -32,17 +31,8 @@ def configure_logging(level: str) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    settings = get_settings()
-    configure_logging(settings.log_level)
-    app.state.linkedin_client = LinkedInClient(
-        cookies=settings.cookies,
-        csrf_token=settings.csrf_token,
-        timeout=settings.request_timeout,
-    )
-    try:
-        yield
-    finally:
-        await app.state.linkedin_client.aclose()
+    configure_logging(get_settings().log_level)
+    yield
 
 
 def create_app() -> FastAPI:
@@ -82,20 +72,9 @@ def create_app() -> FastAPI:
         return _PLAYGROUND.read_text(encoding="utf-8")
 
     @app.api_route("/health", methods=["GET", "HEAD"])
-    async def health(settings: Settings = Depends(get_settings)) -> dict:
-        # A count and two booleans — enough to diagnose a misconfigured
-        # server without enumerating the jar or exposing a single value.
-        cookies = settings.cookies
-        return {
-            "status": "ok",
-            "decoration_id": DECORATION_ID,
-            "server_session": {
-                "configured": bool(cookies),
-                "cookie_count": len(cookies),
-                "has_li_at": "li_at" in cookies,
-                "has_jsessionid": "JSESSIONID" in cookies,
-            },
-        }
+    async def health() -> dict:
+        # Nothing credential-shaped to report: the service holds no session.
+        return {"status": "ok", "decoration_id": DECORATION_ID}
 
     app.include_router(linkedin_router)
     return app

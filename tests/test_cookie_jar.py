@@ -11,10 +11,11 @@ import inspect
 from app.linkedin.client import LinkedInClient
 
 COOKIES = {"li_at": "AQED", "JSESSIONID": '"ajax:99"', "lidc": "b=VB1"}
+UA = "Mozilla/5.0 (X11; Linux x86_64) Chrome/151.0.0.0"
 
 
 async def test_jar_is_seeded_at_construction():
-    c = LinkedInClient(cookies=COOKIES, csrf_token="ajax:99")
+    c = LinkedInClient(cookies=COOKIES, csrf_token="ajax:99", user_agent=UA)
     try:
         assert c._client.cookies.get("li_at") == "AQED"
     finally:
@@ -22,7 +23,7 @@ async def test_jar_is_seeded_at_construction():
 
 
 async def test_jar_holds_no_duplicates():
-    c = LinkedInClient(cookies=COOKIES, csrf_token="ajax:99")
+    c = LinkedInClient(cookies=COOKIES, csrf_token="ajax:99", user_agent=UA)
     try:
         names = list(c._client.cookies)
         assert len(names) == len(set(names)) == len(COOKIES)

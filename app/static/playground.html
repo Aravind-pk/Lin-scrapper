@@ -10,7 +10,7 @@
     --bg:#0a0a0b; --panel:#111113; --panel2:#17171a; --line:#232327;
     --ink:#e6e6e4; --muted:#82827c; --accent:#4ade80; --on-accent:#07140c;
     --ok:#4ade80; --err:#ff6b60; --key:#e0a458; --code:#c2cad2;
-    --chip:#1c1c21; --req-bg:#3b1a25; --req-ink:#f2789a;
+    --chip:#1c1c21; --req-bg:#3b1a25; --req-ink:#f2789a; --notice-bg:#231b0f;
     --tok-key:#7fd3e8; --tok-str:#e0a458; --tok-num:#b9a7f2;
   }
   @media (prefers-color-scheme: light) {
@@ -18,7 +18,7 @@
       --bg:#fbfbfa; --panel:#fff; --panel2:#f4f4f1; --line:#e3e3df;
       --ink:#17171a; --muted:#6b6b66; --accent:#1f8a4c; --on-accent:#fff;
       --ok:#1f8a4c; --err:#b3261e; --key:#8a5a10; --code:#2a2f36;
-      --chip:#eeeeea; --req-bg:#fbe6ea; --req-ink:#9c2740;
+      --chip:#eeeeea; --req-bg:#fbe6ea; --req-ink:#9c2740; --notice-bg:#fdf6e7;
       --tok-key:#1d6f86; --tok-str:#8a5a10; --tok-num:#5b46a8;
     }
   }
@@ -80,6 +80,18 @@
   }
   .linkbtn:hover { color:var(--ink); }
 
+  .req-star { color:var(--req-ink); font-weight:700; margin-left:2px; }
+  input[readonly] { color:var(--muted); background:var(--panel2); cursor:default; }
+  .auto { font-size:11px; color:var(--accent); font-weight:600;
+          letter-spacing:.04em; text-transform:uppercase; }
+  .fineprint { margin:12px 0 0; font-size:12px; line-height:1.5; color:var(--muted); }
+  .notice {
+    margin:14px 0 0; padding:11px 14px; border-radius:0 8px 8px 0;
+    border-left:2px solid var(--key); background:var(--notice-bg);
+    font-size:12.5px; line-height:1.6; color:var(--ink);
+  }
+  .notice b { color:var(--key); font-weight:600; }
+  .notice span { color:var(--muted); }
   .cookiestate { margin-top:7px; font-size:12.5px; color:var(--muted); min-height:18px; }
   .cookiestate b { color:var(--ok); font-weight:600; }
   .cookiestate .miss { color:var(--err); }
@@ -157,33 +169,57 @@
       <div class="eyebrow">Playground</div>
       <h2>Try it</h2>
       <p class="lede">
-        Runs against the live endpoint. Your cookies are sent in the request body,
-        never the URL, and are masked here and in the request preview.
+        Runs against the live endpoint. Your browser's user agent is sent
+        automatically, because LinkedIn binds a session to the browser it was issued
+        to. Your cookies are sent in the request body, never the URL, are masked here
+        and in the request preview, and are never stored — the service keeps no
+        session of its own.
       </p>
 
       <form class="card" id="form">
         <div class="field">
-          <label for="url">Profile URL</label>
+          <label for="url">Profile URL<span class="req-star">*</span></label>
           <input type="text" id="url" placeholder="https://www.linkedin.com/in/williamhgates" required>
         </div>
 
         <div class="field">
           <div class="field-head">
-            <label for="cookies">Cookie header</label>
+            <label for="cookies">Cookie header<span class="req-star">*</span></label>
             <button type="button" class="linkbtn" id="reveal">Show</button>
           </div>
           <div class="hint">
-            DevTools → Network → any linkedin.com request → Copy as cURL, then everything
-            after <code>Cookie:</code>. Leave blank to use the server's session, if it has one.
+            Required — this service holds no LinkedIn session of its own. DevTools →
+            Network → any linkedin.com request → Copy as cURL, then everything after
+            <code>Cookie:</code>.
           </div>
-          <textarea id="cookies" class="masked" spellcheck="false"
+          <textarea id="cookies" class="masked" spellcheck="false" required
             placeholder="bcookie=&quot;v=2&amp;...&quot;; li_at=...; JSESSIONID=&quot;ajax:...&quot;"></textarea>
           <div class="cookiestate" id="cookiestate"></div>
+        </div>
+
+        <div class="field">
+          <div class="field-head">
+            <label for="ua">User agent<span class="req-star">*</span></label>
+            <span class="auto">detected</span>
+          </div>
+          <div class="hint">
+            Which browser your cookies belong to. LinkedIn binds a session to the
+            browser it issued it to, so this has to be the one you copied them from —
+            read from this browser and sent for you.
+          </div>
+          <input type="text" id="ua" readonly>
         </div>
 
         <button type="submit" id="go">Send request</button>
         <span class="status" id="status"></span>
       </form>
+
+      <p class="fineprint"><span class="req-star">*</span> required</p>
+      <p class="notice">
+        <b>Automated access to LinkedIn is not permitted by its User Agreement.</b>
+        <span>This is a technical exercise — use your own account, and your own
+        judgement about whether to run it at all.</span>
+      </p>
 
       <div id="rendered"></div>
     </section>
@@ -195,15 +231,15 @@
         <span style="color:var(--ok)">POST</span> /api/integrations/linkedin/profile
       </p>
       <p class="lede">
-        No authentication. The LinkedIn cookies are the only credential, and they
-        are yours — nothing is stored server-side.
+        No authentication and no stored credentials. Every request runs on the
+        cookies you supply, so the deployment holds nothing of value.
       </p>
 
       <h3>Body</h3>
       <div class="card">
         <div class="param">
           <div class="param-head">
-            <span class="pname">url</span><span class="chip">string</span><span class="chip req">required</span>
+            <span class="pname">url<span class="req-star">*</span></span><span class="chip">string</span><span class="chip req">required</span>
           </div>
           <p>A LinkedIn profile URL. Accepts any usual form — with or without scheme,
              <code>www.</code> or a locale subdomain, trailing slash, tracking query
@@ -211,19 +247,21 @@
         </div>
         <div class="param">
           <div class="param-head">
-            <span class="pname">cookie_header</span><span class="chip">string</span><span class="chip">optional</span>
+            <span class="pname">cookie_header<span class="req-star">*</span></span><span class="chip">string</span><span class="chip req">required</span>
           </div>
-          <p>Your LinkedIn <code>Cookie</code> header, verbatim. Omit it to use the
-             server's own session. Supplied cookies get a short-lived client that is
-             closed after the request.</p>
+          <p>Your LinkedIn <code>Cookie</code> header, verbatim. The service holds no
+             session of its own, so every request runs on the caller's. Each gets a
+             short-lived client that is closed afterwards; nothing is stored.</p>
         </div>
         <div class="param">
           <div class="param-head">
-            <span class="pname">user_agent</span><span class="chip">string</span><span class="chip">optional</span>
+            <span class="pname">user_agent<span class="req-star">*</span></span><span class="chip">string</span><span class="chip req">required</span>
           </div>
           <p>The user agent of the browser the cookies came from. LinkedIn binds a
              session to the browser it issued it to, so a mismatch is something it can
-             score against. This page sends yours automatically.</p>
+             score against — a mismatch invalidates the session instead of failing the
+             request, so there is no safe default and none is provided. The playground
+             reads it from <code>navigator.userAgent</code> and shows it above.</p>
         </div>
       </div>
 
@@ -260,7 +298,7 @@
             <tr><td><code>invalid_request</code></td><td class="st">422</td><td class="st">Body is malformed</td></tr>
             <tr><td><code>invalid_profile_url</code></td><td class="st">400</td><td class="st">Not a <code>/in/&lt;slug&gt;</code> URL</td></tr>
             <tr><td><code>profile_not_found</code></td><td class="st">404</td><td class="st">No such profile, or not visible to the session</td></tr>
-            <tr><td><code>session_expired</code></td><td class="st">503</td><td class="st">Cookies are stale, or none supplied</td></tr>
+            <tr><td><code>session_expired</code></td><td class="st">503</td><td class="st">The supplied cookies are stale — copy a fresh header</td></tr>
             <tr><td><code>upstream_error</code></td><td class="st">502</td><td class="st">LinkedIn returned something unexpected</td></tr>
             <tr><td><code>upstream_timeout</code></td><td class="st">504</td><td class="st">LinkedIn did not respond in time</td></tr>
           </tbody>
@@ -293,6 +331,7 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ENDPOINT = "/api/integrations/linkedin/profile";
 $("base").textContent = location.origin;
+$("ua").value = navigator.userAgent;
 
 /* ---------- cookie handling: never render the value ---------- */
 function cookieNames(header) {
@@ -330,8 +369,8 @@ function requestBody(redact) {
   if (raw) {
     body.cookie_header = redact
       ? `<${cookieNames(raw).length} cookies hidden>` : raw;
-    body.user_agent = navigator.userAgent;
   }
+  body.user_agent = navigator.userAgent;
   return body;
 }
 function renderRequest() {

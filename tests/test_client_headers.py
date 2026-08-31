@@ -10,7 +10,6 @@ import pytest
 from app.linkedin.client import LinkedInClient
 from app.linkedin.constants import (
     ACCEPT,
-    BROWSER_USER_AGENT,
     FORBIDDEN_HEADERS,
     REFERER,
     RESTLI_VERSION,
@@ -19,9 +18,12 @@ from app.linkedin.constants import (
 COOKIES = {"li_at": "AQED", "JSESSIONID": '"ajax:99"'}
 
 
+UA = "Mozilla/5.0 (X11; Linux x86_64) Chrome/151.0.0.0"
+
+
 @pytest.fixture
 async def client():
-    c = LinkedInClient(cookies=COOKIES, csrf_token="ajax:99")
+    c = LinkedInClient(cookies=COOKIES, csrf_token="ajax:99", user_agent=UA)
     yield c
     await c.aclose()
 
@@ -51,8 +53,8 @@ async def test_referer_is_the_feed_not_the_profile(client):
     assert "/in/" not in client._headers()["referer"]
 
 
-async def test_user_agent_is_a_browser_string(client):
-    assert client._headers()["user-agent"] == BROWSER_USER_AGENT
+async def test_user_agent_is_the_one_supplied(client):
+    assert client._headers()["user-agent"] == UA
 
 
 async def test_no_trace_context_headers_are_sent(client):
@@ -92,17 +94,11 @@ async def test_redirects_are_not_followed(client):
     assert client._client.follow_redirects is False
 
 
-async def test_caller_user_agent_is_used_when_supplied():
-    """LinkedIn binds a session to the browser it issued it to, so the UA has
-    to match the cookies rather than a hardcoded guess. An earlier version
-    claimed Windows while the cookies came from Linux."""
-    real = "Mozilla/5.0 (X11; Linux x86_64) Real"
-    c = LinkedInClient(COOKIES, "ajax:99", user_agent=real)
-    try:
-        assert c._headers()["user-agent"] == real
-    finally:
-        await c.aclose()
+async def test_user_agent_has_no_default():
+    """It cannot be defaulted: LinkedIn binds a session to the browser it was
+    issued to, so a stand-in invalidates the session instead of failing. An
+    earlier version defaulted to Windows while the cookies came from Linux."""
+    import inspect
 
-
-async def test_falls_back_to_the_default_user_agent(client):
-    assert client._headers()["user-agent"] == BROWSER_USER_AGENT
+    param = inspect.signature(LinkedInClient.__init__).parameters["user_agent"]
+    assert param.default is inspect.Parameter.empty

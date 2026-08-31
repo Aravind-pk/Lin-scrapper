@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import sys
 from collections import Counter
 from pathlib import Path
@@ -21,8 +22,13 @@ from time import perf_counter
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.config import get_settings  # noqa: E402
+from app.config import (  # noqa: E402
+    csrf_token_for,
+    get_settings,
+    parse_cookie_header,
+)
 from app.linkedin.client import LinkedInClient  # noqa: E402
+from app.linkedin.constants import EXAMPLE_USER_AGENT  # noqa: E402
 from app.linkedin.profile import extract_profile  # noqa: E402
 
 
@@ -40,13 +46,22 @@ async def main() -> int:
     ap.add_argument("slug")
     ap.add_argument("--dump", help="write the raw response here")
     ap.add_argument("--show", action="store_true", help="print extracted values")
+    ap.add_argument(
+        "--user-agent",
+        default=EXAMPLE_USER_AGENT,
+        help="the browser the cookies came from; a mismatch kills the session",
+    )
     args = ap.parse_args()
 
     settings = get_settings()
-    settings.require_session()
+    cookies = parse_cookie_header(os.environ.get("LI_COOKIE_HEADER", ""))
+    if not cookies.get("li_at"):
+        print("Set LI_COOKIE_HEADER in the environment.", file=sys.stderr)
+        return 1
     client = LinkedInClient(
-        cookies=settings.cookies,
-        csrf_token=settings.csrf_token,
+        cookies=cookies,
+        csrf_token=csrf_token_for(cookies),
+        user_agent=args.user_agent,
         timeout=settings.request_timeout,
     )
     try:
