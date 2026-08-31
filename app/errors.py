@@ -32,12 +32,6 @@ class InvalidProfileURL(LinkedInAPIError):
     default_message = "Not a LinkedIn profile URL. Expected linkedin.com/in/<slug>."
 
 
-class Unauthorized(LinkedInAPIError):
-    code = "unauthorized"
-    http_status = 401
-    default_message = "Missing or invalid API key."
-
-
 class ProfileNotFound(LinkedInAPIError):
     code = "profile_not_found"
     http_status = 404

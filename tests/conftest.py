@@ -12,7 +12,7 @@ from app.main import create_app
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
-_ENV_KEYS = ("LI_COOKIE_HEADER", "API_KEY", "REQUEST_TIMEOUT", "LOG_LEVEL")
+_ENV_KEYS = ("LI_COOKIE_HEADER", "REQUEST_TIMEOUT", "LOG_LEVEL")
 
 
 @pytest.fixture(autouse=True)
@@ -30,7 +30,6 @@ def isolate_settings(monkeypatch):
     yield
     get_settings.cache_clear()
 
-API_KEY = "test-api-key"
 COOKIE_HEADER = 'li_at=AQEDATEST; JSESSIONID="ajax:1234567890123456789"'
 
 
@@ -41,7 +40,7 @@ def normalized_payload() -> dict:
 
 @pytest.fixture
 def settings() -> Settings:
-    return Settings(api_key=API_KEY, li_cookie_header=COOKIE_HEADER)
+    return Settings(li_cookie_header=COOKIE_HEADER)
 
 
 class FakeClient:
@@ -51,12 +50,16 @@ class FakeClient:
         self.payload = payload
         self.error = error
         self.calls: list[str] = []
+        self.closed = False
 
     async def get_profile(self, slug: str) -> dict:
         self.calls.append(slug)
         if self.error:
             raise self.error
         return self.payload or {}
+
+    async def aclose(self) -> None:
+        self.closed = True
 
 
 @pytest.fixture
@@ -73,5 +76,7 @@ def make_app(settings):
 
 
 @pytest.fixture
-def auth_headers() -> dict[str, str]:
-    return {"X-API-Key": API_KEY}
+def no_server_session(settings):
+    """A server with no cookie header of its own."""
+    settings.li_cookie_header = ""
+    return settings

@@ -14,44 +14,21 @@ class Settings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
 
-    # The whole Cookie header, pasted verbatim.
-    #
-    # Two cookies (li_at + JSESSIONID) are enough for a single request to
-    # succeed, and an earlier version supported supplying just those. Measured
-    # across a sequence, they are not enough: the session is revoked on the
-    # second request, where the full jar served three. bcookie, bscookie, lidc
-    # and _pxvid (PerimeterX) are device-continuity identifiers — invisible in
-    # one response, decisive across several.
+    # The whole Cookie header, pasted verbatim. Only li_at and JSESSIONID are
+    # load-bearing for a request to succeed; bcookie, bscookie, lidc and _pxvid
+    # are device-continuity identifiers and cost nothing to carry.
     li_cookie_header: str = ""
-
-    api_key: str = ""
 
     request_timeout: float = 15.0
     log_level: str = "INFO"
 
     @property
     def cookies(self) -> dict[str, str]:
-        """The cookie jar to seed, as name -> value.
-
-        Values are kept exactly as sent, quotes included: JSESSIONID arrives
-        quoted and must stay that way, while the csrf-token header drops them.
-        """
-        cookies: dict[str, str] = {}
-        for part in self.li_cookie_header.split(";"):
-            name, sep, value = part.strip().partition("=")
-            if sep and name.strip():
-                cookies[name.strip()] = value.strip()
-        return cookies
+        return parse_cookie_header(self.li_cookie_header)
 
     @property
     def csrf_token(self) -> str:
-        """The csrf-token header value: JSESSIONID *without* its quotes.
-
-        The asymmetry is real and load-bearing — the cookie keeps its quotes
-        while the header drops them. Four independent implementations have now
-        converged on it.
-        """
-        return self.cookies.get("JSESSIONID", "").strip('"')
+        return csrf_token_for(self.cookies)
 
     def require_session(self) -> dict[str, str]:
         """Cookies for an outbound call, or a clear failure if unconfigured."""
@@ -62,6 +39,31 @@ class Settings(BaseSettings):
                 detail="Paste the whole Cookie header into LI_COOKIE_HEADER.",
             )
         return cookies
+
+
+def parse_cookie_header(header: str) -> dict[str, str]:
+    """Split a raw Cookie header into name -> value.
+
+    Values are kept exactly as sent, quotes included: JSESSIONID arrives quoted
+    and must stay that way in the jar, while the csrf-token header drops them.
+    Only the first `=` separates name from value — `lidc=b=VB1` is a real shape.
+    """
+    cookies: dict[str, str] = {}
+    for part in header.split(";"):
+        name, sep, value = part.strip().partition("=")
+        if sep and name.strip():
+            cookies[name.strip()] = value.strip()
+    return cookies
+
+
+def csrf_token_for(cookies: dict[str, str]) -> str:
+    """The csrf-token header value: JSESSIONID *without* its quotes.
+
+    The asymmetry is real and load-bearing — the cookie keeps its quotes while
+    the header drops them. Four independent implementations have converged on
+    it.
+    """
+    return cookies.get("JSESSIONID", "").strip('"')
 
 
 @lru_cache

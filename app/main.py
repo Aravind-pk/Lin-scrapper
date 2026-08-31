@@ -5,16 +5,19 @@ from __future__ import annotations
 import logging
 import sys
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
 from app.config import Settings, get_settings
 from app.errors import LinkedInAPIError
 from app.linkedin.client import LinkedInClient
 from app.linkedin.constants import DECORATION_ID
 from app.linkedin.router import router as linkedin_router
+
+_PLAYGROUND = Path(__file__).parent / "static" / "playground.html"
 
 
 def configure_logging(level: str) -> None:
@@ -69,15 +72,24 @@ def create_app() -> FastAPI:
             },
         )
 
+    @app.get("/", response_class=HTMLResponse, include_in_schema=False)
+    async def playground() -> str:
+        return _PLAYGROUND.read_text(encoding="utf-8")
+
     @app.get("/health")
     async def health(settings: Settings = Depends(get_settings)) -> dict:
-        # Names only, never values — so this response and the logs are safe
-        # to paste into an issue.
+        # A count and two booleans — enough to diagnose a misconfigured
+        # server without enumerating the jar or exposing a single value.
+        cookies = settings.cookies
         return {
             "status": "ok",
             "decoration_id": DECORATION_ID,
-            "cookies_configured": sorted(settings.cookies),
-            "api_key_configured": bool(settings.api_key),
+            "server_session": {
+                "configured": bool(cookies),
+                "cookie_count": len(cookies),
+                "has_li_at": "li_at" in cookies,
+                "has_jsessionid": "JSESSIONID" in cookies,
+            },
         }
 
     app.include_router(linkedin_router)

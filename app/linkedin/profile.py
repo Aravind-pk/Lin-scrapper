@@ -127,7 +127,9 @@ def _image_url(picture: Any) -> str | None:
     if not isinstance(picture, dict):
         return None
     display = picture.get("displayImageReference") or picture.get("displayImage")
-    vector = display.get("vectorImage") or display if isinstance(display, dict) else None
+    vector = None
+    if isinstance(display, dict):
+        vector = display.get("vectorImage") or display
     if not isinstance(vector, dict):
         return None
 
@@ -171,7 +173,8 @@ def _experience(entity: dict[str, Any], index: dict) -> list[Experience]:
                 title=_text(p.get("title")),
                 company=_text(p.get("companyName")) or _named(p.get("company")),
                 employment_type=_named(p.get("employmentType")),
-                location=_text(p.get("locationName")) or _text(p.get("geoLocationName")),
+                location=_text(p.get("locationName"))
+                or _text(p.get("geoLocationName")),
                 description=_text(p.get("description")),
                 start_date=start,
                 end_date=end,

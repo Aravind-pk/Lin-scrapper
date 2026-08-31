@@ -14,4 +14,3 @@ tools
 *.har
 Dockerfile
 .dockerignore
-deploy.sh

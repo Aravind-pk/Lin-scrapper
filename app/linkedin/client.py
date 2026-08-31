@@ -11,6 +11,7 @@ from typing import Any
 
 import httpx
 
+from app.config import csrf_token_for, parse_cookie_header
 from app.errors import (
     ProfileNotFound,
     SessionExpired,
@@ -36,8 +37,11 @@ class LinkedInClient:
         cookies: dict[str, str],
         csrf_token: str,
         timeout: float = 15.0,
+        user_agent: str | None = None,
     ):
         self._csrf_token = csrf_token
+        # Must match the browser the cookies were issued to.
+        self._user_agent = user_agent or BROWSER_USER_AGENT
         # Seed the jar once. Never pass cookies= per request: httpx merges the
         # two sources and sends every cookie twice, which LinkedIn reads as a
         # hijacked session and responds to by invalidating it everywhere.
@@ -49,6 +53,21 @@ class LinkedInClient:
         )
         log.info("Seeded %d cookies: %s", len(cookies), ", ".join(sorted(cookies)))
 
+    @classmethod
+    def from_cookie_header(
+        cls,
+        header: str,
+        timeout: float = 15.0,
+        user_agent: str | None = None,
+    ) -> LinkedInClient:
+        cookies = parse_cookie_header(header)
+        return cls(
+            cookies=cookies,
+            csrf_token=csrf_token_for(cookies),
+            timeout=timeout,
+            user_agent=user_agent,
+        )
+
     def _headers(self) -> dict[str, str]:
         headers = {
             # Must equal the JSESSIONID cookie, minus its quotes. Voyager
@@ -56,7 +75,7 @@ class LinkedInClient:
             "csrf-token": self._csrf_token,
             "accept": ACCEPT,
             "x-restli-protocol-version": RESTLI_VERSION,
-            "user-agent": BROWSER_USER_AGENT,
+            "user-agent": self._user_agent,
             "accept-language": "en-US,en;q=0.9",
             # The SPA shell, not the profile being read.
             "referer": REFERER,
@@ -129,12 +148,15 @@ def _raise_for_status(
             location is not None and location == requested_url
         )
         if revoked:
+            cleared = (
+                f" with clear-site-data: {clear_site_data}" if clear_site_data else ""
+            )
             raise SessionExpired(
                 "LinkedIn revoked this session.",
-                detail="Redirected to the requested URL"
-                + (f" with clear-site-data: {clear_site_data}" if clear_site_data else "")
-                + ". Log out of LinkedIn, log back in, and re-copy LI_AT and "
-                "JSESSIONID into .env.",
+                detail=(
+                    f"Redirected to the requested URL{cleared}. Re-copy the "
+                    "Cookie header from a logged-in browser."
+                ),
             )
         raise SessionExpired(detail=f"Redirected to {location or 'unknown'}.")
 

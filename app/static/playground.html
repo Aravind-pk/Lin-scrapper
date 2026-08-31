@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LinkedIn Profile API — Playground</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #fbfbfa; --panel: #fff; --ink: #1a1a18; --muted: #6b6b66;
+    --line: #e4e4e0; --accent: #d94f2b; --ok: #2f7d54; --err: #b3261e;
+    --code-bg: #f4f4f1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16161a; --panel: #1e1e23; --ink: #ecebe8; --muted: #9b9b95;
+      --line: #32323a; --accent: #ff7a55; --ok: #6dd39b; --err: #ff6b60;
+      --code-bg: #141418;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 32px 20px 72px; }
+  header { border-bottom: 2px solid var(--accent); padding-bottom: 14px; margin-bottom: 26px; }
+  h1 { margin: 0 0 4px; font-size: 22px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-size: 13.5px; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 20px; margin-bottom: 18px;
+  }
+  label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px; }
+  .hint { font-weight: 400; color: var(--muted); font-size: 12.5px; margin-bottom: 8px; }
+  input[type=text], textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--line);
+    border-radius: 7px; background: var(--bg); color: var(--ink);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px;
+  }
+  textarea { min-height: 104px; resize: vertical; white-space: pre-wrap; word-break: break-all; }
+  input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .row { margin-bottom: 16px; }
+  button {
+    background: var(--accent); color: #fff; border: 0; border-radius: 7px;
+    padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  button:disabled { opacity: .55; cursor: default; }
+  .warn {
+    border-left: 3px solid var(--accent); background: var(--code-bg);
+    padding: 10px 14px; border-radius: 0 7px 7px 0; font-size: 13px;
+    color: var(--muted); margin-bottom: 18px;
+  }
+  .status { margin-left: 14px; font-size: 13px; color: var(--muted); }
+  .status.ok { color: var(--ok); } .status.err { color: var(--err); }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 14px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; margin: 0;
+  }
+  .card { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 18px; }
+  .card img { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; flex: none; }
+  .card h2 { margin: 0 0 2px; font-size: 18px; }
+  .card .hl { color: var(--ink); font-size: 14px; }
+  .card .loc { color: var(--muted); font-size: 13px; }
+  h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em;
+       color: var(--muted); margin: 22px 0 8px; }
+  .item { border-left: 2px solid var(--line); padding: 2px 0 2px 12px; margin-bottom: 10px; }
+  .item b { font-size: 14px; } .item .meta { color: var(--muted); font-size: 12.5px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { background: var(--code-bg); border: 1px solid var(--line);
+          border-radius: 20px; padding: 3px 11px; font-size: 12.5px; }
+  details { margin-top: 20px; } summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+  .empty { color: var(--muted); font-style: italic; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>LinkedIn Profile API</h1>
+    <div class="sub">Paste a profile URL and your LinkedIn cookies. Returns structured JSON.</div>
+  </header>
+
+  <div class="warn">
+    Your cookie header is a <strong>live account credential</strong>. It is sent in the
+    request body over HTTPS, never in the URL, and is not stored by this page or
+    logged by the server &mdash; only cookie <em>names</em> reach the logs. Use this
+    only on a deployment you trust. Requests carry this browser's user agent so they
+    match the session LinkedIn issued it to.
+  </div>
+
+  <form class="panel" id="form">
+    <div class="row">
+      <label for="url">Profile URL</label>
+      <input type="text" id="url" placeholder="https://www.linkedin.com/in/williamhgates" required>
+    </div>
+    <div class="row">
+      <label for="cookies">Cookie header</label>
+      <div class="hint">
+        DevTools &rarr; Network &rarr; any linkedin.com request &rarr; Copy as cURL,
+        then everything after <code>Cookie:</code>. Leave blank to use the server's own session.
+      </div>
+      <textarea id="cookies" placeholder='bcookie="v=2&..."; li_at=AQED...; JSESSIONID="ajax:..."; lidc=b=VB1'></textarea>
+    </div>
+    <button type="submit" id="go">Fetch profile</button>
+    <span class="status" id="status"></span>
+  </form>
+
+  <div id="out"></div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function dates(a, b, current) {
+  if (!a && !b) return "";
+  return esc(a || "?") + " – " + (current ? "Present" : esc(b || "?"));
+}
+
+function section(title, items, render) {
+  if (!items || !items.length) return "";
+  return `<h3>${title}</h3>` + items.map(render).join("");
+}
+
+function render(d) {
+  const p = d.profile;
+  const avatar = p.profile_picture
+    ? `<img src="${esc(p.profile_picture)}" alt="">` : "";
+  return `
+    <div class="panel">
+      <div class="card">
+        ${avatar}
+        <div>
+          <h2>${esc(p.name) || "<span class='empty'>no name</span>"}</h2>
+          <div class="hl">${esc(p.headline)}</div>
+          <div class="loc">${esc(p.location)}</div>
+        </div>
+      </div>
+      ${p.about ? `<h3>About</h3><div>${esc(p.about)}</div>` : ""}
+      ${section("Experience", p.experience, e => `
+        <div class="item">
+          <b>${esc(e.title)}</b> &middot; ${esc(e.company)}
+          <div class="meta">${dates(e.start_date, e.end_date, e.is_current)}${
+            e.employment_type ? " &middot; " + esc(e.employment_type) : ""}${
+            e.location ? " &middot; " + esc(e.location) : ""}</div>
+        </div>`)}
+      ${section("Education", p.education, e => `
+        <div class="item">
+          <b>${esc(e.school)}</b>
+          <div class="meta">${[e.degree, e.field_of_study].filter(Boolean).map(esc).join(", ")}
+            ${dates(e.start_date, e.end_date, false) ? " &middot; " + dates(e.start_date, e.end_date, false) : ""}</div>
+        </div>`)}
+      ${section("Certifications", p.certifications, c => `
+        <div class="item"><b>${esc(c.name)}</b>
+          <div class="meta">${esc(c.authority)}</div></div>`)}
+      ${p.skills && p.skills.length ? `<h3>Skills</h3><div class="chips">${
+        p.skills.map(s => `<span class="chip">${esc(s)}</span>`).join("")}</div>` : ""}
+      ${p.languages && p.languages.length ? `<h3>Languages</h3><div class="chips">${
+        p.languages.map(l => `<span class="chip">${esc(l.name)}${
+          l.proficiency ? " · " + esc(l.proficiency.toLowerCase().replace(/_/g," ")) : ""}</span>`).join("")}</div>` : ""}
+      <details>
+        <summary>Raw JSON</summary>
+        <pre>${esc(JSON.stringify(d, null, 2))}</pre>
+      </details>
+    </div>`;
+}
+
+$("form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const status = $("status"), out = $("out"), go = $("go");
+  go.disabled = true;
+  status.className = "status"; status.textContent = "Fetching…";
+  out.innerHTML = "";
+
+  const body = { url: $("url").value.trim() };
+  const cookies = $("cookies").value.trim();
+  if (cookies) {
+    body.cookie_header = cookies;
+    // LinkedIn binds a session to the browser it was issued to. Send this
+    // browser's real user agent so the request matches the cookies rather
+    // than claiming to be some other machine.
+    body.user_agent = navigator.userAgent;
+  }
+
+  const t0 = performance.now();
+  try {
+    const res = await fetch("/api/integrations/linkedin/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    const ms = Math.round(performance.now() - t0);
+    if (!res.ok) {
+      status.className = "status err";
+      status.textContent = `${res.status} · ${ms} ms`;
+      out.innerHTML = `<div class="panel"><h3>${esc(data.error?.code || "error")}</h3>
+        <div>${esc(data.error?.message || "Request failed.")}</div>
+        ${data.error?.detail ? `<pre style="margin-top:12px">${esc(data.error.detail)}</pre>` : ""}</div>`;
+      return;
+    }
+    status.className = "status ok";
+    status.textContent = `200 · ${ms} ms`;
+    out.innerHTML = render(data);
+  } catch (err) {
+    status.className = "status err";
+    status.textContent = "Network error";
+    out.innerHTML = `<div class="panel">${esc(err.message)}</div>`;
+  } finally {
+    go.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

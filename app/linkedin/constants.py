@@ -17,8 +17,13 @@ DECORATION_ID = (
 ACCEPT = "application/vnd.linkedin.normalized+json+2.1"
 RESTLI_VERSION = "2.0.0"
 
+# Fallback only. LinkedIn binds a session to the browser it was issued to, so
+# presenting that session under a different platform string is a mismatch it
+# can score against — an earlier version claimed Windows while the cookies came
+# from Linux. Callers should send their real user agent; the playground reads
+# navigator.userAgent and does.
 BROWSER_USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
 )
 
