@@ -1,0 +1,9 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+httpx==0.28.1
+pydantic==2.10.5
+pydantic-settings==2.7.1
+
+# Deliberately absent, both measured rather than assumed:
+#   curl_cffi — TLS impersonation returns byte-identical results to plain httpx
+#   h2        — HTTP/1.1 gets 200; the "LinkedIn's WAF blocks HTTP/1.1" claim is false
