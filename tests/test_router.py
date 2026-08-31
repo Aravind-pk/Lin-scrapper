@@ -237,3 +237,11 @@ def test_health_reports_the_decoration_in_use(make_app):
     assert make_app(FakeClient()).get("/health").json()["decoration_id"] == (
         DECORATION_ID
     )
+
+
+def test_root_and_health_answer_head(make_app):
+    """Platform health checks probe with HEAD. FastAPI's @app.get registers
+    GET alone, and a 405 there reads as an unhealthy instance."""
+    client = make_app(FakeClient())
+    assert client.head("/").status_code == 200
+    assert client.head("/health").status_code == 200

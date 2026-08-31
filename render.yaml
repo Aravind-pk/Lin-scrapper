@@ -1,0 +1,21 @@
+# Render Blueprint. With this committed, Render reads every setting from here
+# instead of you picking them in the dashboard.
+services:
+  - type: web
+    name: lin-scrapper
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    autoDeploy: true
+
+    # Must answer 200 to GET *and* HEAD — Render probes with both, and a 405
+    # reads as an unhealthy instance and gets restarted.
+    healthCheckPath: /health
+
+    envVars:
+      # The container reads PORT; Render injects it. Nothing else is required:
+      # callers supply their own LinkedIn cookies per request.
+      - key: LOG_LEVEL
+        value: INFO

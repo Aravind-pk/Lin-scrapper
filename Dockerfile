@@ -15,6 +15,6 @@ COPY app ./app
 RUN useradd --create-home --uid 1000 appuser
 USER appuser
 
-# Cloud Run injects PORT and ignores EXPOSE; the default is for local runs.
+# Render and Cloud Run both inject PORT; the default is for local runs.
 ENV PORT=8080
 CMD exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT}

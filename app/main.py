@@ -72,11 +72,16 @@ def create_app() -> FastAPI:
             },
         )
 
-    @app.get("/", response_class=HTMLResponse, include_in_schema=False)
+    @app.api_route(
+        "/",
+        methods=["GET", "HEAD"],
+        response_class=HTMLResponse,
+        include_in_schema=False,
+    )
     async def playground() -> str:
         return _PLAYGROUND.read_text(encoding="utf-8")
 
-    @app.get("/health")
+    @app.api_route("/health", methods=["GET", "HEAD"])
     async def health(settings: Settings = Depends(get_settings)) -> dict:
         # A count and two booleans — enough to diagnose a misconfigured
         # server without enumerating the jar or exposing a single value.
