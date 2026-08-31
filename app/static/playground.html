@@ -6,206 +6,426 @@
 <title>LinkedIn Profile API — Playground</title>
 <style>
   :root {
-    color-scheme: light dark;
-    --bg: #fbfbfa; --panel: #fff; --ink: #1a1a18; --muted: #6b6b66;
-    --line: #e4e4e0; --accent: #d94f2b; --ok: #2f7d54; --err: #b3261e;
-    --code-bg: #f4f4f1;
+    color-scheme: dark light;
+    --bg:#0a0a0b; --panel:#111113; --panel2:#17171a; --line:#232327;
+    --ink:#e6e6e4; --muted:#82827c; --accent:#4ade80; --on-accent:#07140c;
+    --ok:#4ade80; --err:#ff6b60; --key:#e0a458; --code:#c2cad2;
+    --chip:#1c1c21; --req-bg:#3b1a25; --req-ink:#f2789a;
+    --tok-key:#7fd3e8; --tok-str:#e0a458; --tok-num:#b9a7f2;
   }
-  @media (prefers-color-scheme: dark) {
+  @media (prefers-color-scheme: light) {
     :root {
-      --bg: #16161a; --panel: #1e1e23; --ink: #ecebe8; --muted: #9b9b95;
-      --line: #32323a; --accent: #ff7a55; --ok: #6dd39b; --err: #ff6b60;
-      --code-bg: #141418;
+      --bg:#fbfbfa; --panel:#fff; --panel2:#f4f4f1; --line:#e3e3df;
+      --ink:#17171a; --muted:#6b6b66; --accent:#1f8a4c; --on-accent:#fff;
+      --ok:#1f8a4c; --err:#b3261e; --key:#8a5a10; --code:#2a2f36;
+      --chip:#eeeeea; --req-bg:#fbe6ea; --req-ink:#9c2740;
+      --tok-key:#1d6f86; --tok-str:#8a5a10; --tok-num:#5b46a8;
     }
   }
-  * { box-sizing: border-box; }
+  * { box-sizing:border-box; }
   body {
-    margin: 0; background: var(--bg); color: var(--ink);
-    font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    margin:0; background:var(--bg); color:var(--ink);
+    font:15px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
   }
-  .wrap { max-width: 940px; margin: 0 auto; padding: 32px 20px 72px; }
-  header { border-bottom: 2px solid var(--accent); padding-bottom: 14px; margin-bottom: 26px; }
-  h1 { margin: 0 0 4px; font-size: 22px; letter-spacing: -0.01em; }
-  .sub { color: var(--muted); font-size: 13.5px; }
-  .panel {
-    background: var(--panel); border: 1px solid var(--line);
-    border-radius: 10px; padding: 20px; margin-bottom: 18px;
+  code, pre, .mono { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+
+  header { border-bottom:1px solid var(--line); padding:20px 0; }
+  header .bar {
+    max-width:1400px; margin:0 auto; padding:0 28px;
+    display:flex; flex-wrap:wrap; gap:14px; align-items:baseline;
   }
-  label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px; }
-  .hint { font-weight: 400; color: var(--muted); font-size: 12.5px; margin-bottom: 8px; }
+  header h1 { margin:0; font-size:18px; letter-spacing:-.01em; }
+  header .base { color:var(--muted); font-size:12.5px; }
+  header .base b { color:var(--ink); font-weight:500; }
+
+  .grid {
+    display:grid; grid-template-columns:minmax(0,1fr) minmax(0,470px);
+    gap:28px; padding:28px; max-width:1400px; margin:0 auto; align-items:start;
+  }
+  @media (max-width:1020px) { .grid { grid-template-columns:1fr; } .rail { position:static !important; } }
+
+  section { margin-bottom:34px; }
+  .eyebrow {
+    color:var(--accent); font-size:11.5px; font-weight:700;
+    letter-spacing:.09em; text-transform:uppercase; margin-bottom:8px;
+  }
+  h2 { margin:0 0 6px; font-size:23px; letter-spacing:-.015em; }
+  h3 { margin:26px 0 10px; font-size:13px; text-transform:uppercase;
+       letter-spacing:.07em; color:var(--muted); }
+  p.lede { margin:0 0 18px; color:var(--muted); }
+
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:20px; }
+
+  label { display:block; font-weight:600; font-size:13px; margin-bottom:5px; }
+  .hint { color:var(--muted); font-size:12.5px; margin-bottom:8px; }
   input[type=text], textarea {
-    width: 100%; padding: 10px 12px; border: 1px solid var(--line);
-    border-radius: 7px; background: var(--bg); color: var(--ink);
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px;
+    width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px;
+    background:var(--bg); color:var(--ink); font-size:13px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
   }
-  textarea { min-height: 104px; resize: vertical; white-space: pre-wrap; word-break: break-all; }
-  input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .row { margin-bottom: 16px; }
+  textarea { min-height:88px; resize:vertical; white-space:pre-wrap; word-break:break-all; }
+  textarea.masked { -webkit-text-security:disc; text-security:disc; }
+  input:focus, textarea:focus { outline:2px solid var(--accent); outline-offset:1px; }
+  .field { margin-bottom:16px; }
+  .field-head { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+
   button {
-    background: var(--accent); color: #fff; border: 0; border-radius: 7px;
-    padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer;
+    background:var(--accent); color:var(--on-accent); border:0; border-radius:8px;
+    padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer;
   }
-  button:disabled { opacity: .55; cursor: default; }
-  .warn {
-    border-left: 3px solid var(--accent); background: var(--code-bg);
-    padding: 10px 14px; border-radius: 0 7px 7px 0; font-size: 13px;
-    color: var(--muted); margin-bottom: 18px;
+  button:disabled { opacity:.5; cursor:default; }
+  .linkbtn {
+    background:none; border:0; color:var(--muted); font-size:12px;
+    padding:0; font-weight:600; cursor:pointer; text-decoration:underline;
   }
-  .status { margin-left: 14px; font-size: 13px; color: var(--muted); }
-  .status.ok { color: var(--ok); } .status.err { color: var(--err); }
+  .linkbtn:hover { color:var(--ink); }
+
+  .cookiestate { margin-top:7px; font-size:12.5px; color:var(--muted); min-height:18px; }
+  .cookiestate b { color:var(--ok); font-weight:600; }
+  .cookiestate .miss { color:var(--err); }
+
+  .status { margin-left:14px; font-size:13px; color:var(--muted); }
+  .status.ok { color:var(--ok); } .status.err { color:var(--err); }
+
+  /* parameter rows */
+  .param { border-top:1px solid var(--line); padding:14px 0; }
+  .param:first-of-type { border-top:0; }
+  .param-head { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .pname { color:var(--key); font-size:13.5px; font-weight:600; }
+  .chip {
+    font-size:11px; padding:2px 8px; border-radius:5px; background:var(--chip);
+    color:var(--muted); border:1px solid var(--line);
+  }
+  .chip.req { background:var(--req-bg); color:var(--req-ink); border-color:transparent; }
+  .param p { margin:7px 0 0; color:var(--muted); font-size:13.5px; }
+
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th { text-align:left; color:var(--muted); font-weight:600; font-size:11.5px;
+       text-transform:uppercase; letter-spacing:.06em; padding:0 12px 8px 0; }
+  td { padding:9px 12px 9px 0; border-top:1px solid var(--line); vertical-align:top; }
+  td code { color:var(--key); font-size:12.5px; }
+  .st { color:var(--muted); font-size:12.5px; }
+
+  /* code rail */
+  .rail { position:sticky; top:28px; display:flex; flex-direction:column; gap:16px; }
+  .codebox { background:var(--panel); border:1px solid var(--line); border-radius:11px; overflow:hidden; }
+  .codebox header {
+    padding:10px 14px; border-bottom:1px solid var(--line); border-top:0;
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+  }
+  .codebox .t { font-size:12px; font-weight:600; color:var(--accent); }
+  .codebox .t.ok { color:var(--ok); } .codebox .t.err { color:var(--err); }
+  .copy {
+    background:var(--panel2); color:var(--muted); border:1px solid var(--line);
+    border-radius:6px; padding:4px 10px; font-size:11.5px; font-weight:600;
+  }
+  .copy:hover { color:var(--ink); }
   pre {
-    background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
-    padding: 14px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; margin: 0;
+    margin:0; padding:14px; overflow:auto; max-height:420px;
+    font-size:12.5px; line-height:1.55; color:var(--code);
   }
-  .card { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 18px; }
-  .card img { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; flex: none; }
-  .card h2 { margin: 0 0 2px; font-size: 18px; }
-  .card .hl { color: var(--ink); font-size: 14px; }
-  .card .loc { color: var(--muted); font-size: 13px; }
-  h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em;
-       color: var(--muted); margin: 22px 0 8px; }
-  .item { border-left: 2px solid var(--line); padding: 2px 0 2px 12px; margin-bottom: 10px; }
-  .item b { font-size: 14px; } .item .meta { color: var(--muted); font-size: 12.5px; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-  .chip { background: var(--code-bg); border: 1px solid var(--line);
-          border-radius: 20px; padding: 3px 11px; font-size: 12.5px; }
-  details { margin-top: 20px; } summary { cursor: pointer; font-size: 13px; color: var(--muted); }
-  .empty { color: var(--muted); font-style: italic; font-size: 13px; }
+  .tok-key { color:var(--tok-key); } .tok-str { color:var(--tok-str); }
+  .tok-num { color:var(--tok-num); } .tok-lit { color:var(--accent); }
+  .redacted { color:var(--muted); font-style:italic; }
+
+  /* rendered profile */
+  .who { display:flex; gap:15px; align-items:flex-start; margin-bottom:6px; }
+  .who img { width:66px; height:66px; border-radius:50%; object-fit:cover; flex:none;
+             border:1px solid var(--line); }
+  .who h4 { margin:0 0 2px; font-size:17px; }
+  .who .hl { font-size:13.5px; } .who .loc { color:var(--muted); font-size:12.5px; }
+  .item { border-left:2px solid var(--line); padding:2px 0 2px 12px; margin-bottom:10px; }
+  .item b { font-size:13.5px; } .item .meta { color:var(--muted); font-size:12.5px; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .note { color:var(--muted); font-size:13px; border-left:2px solid var(--accent);
+          padding:2px 0 2px 12px; }
+  .empty { color:var(--muted); font-style:italic; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
+
+<header>
+  <div class="bar">
     <h1>LinkedIn Profile API</h1>
-    <div class="sub">Paste a profile URL and your LinkedIn cookies. Returns structured JSON.</div>
-  </header>
-
-  <div class="warn">
-    Your cookie header is a <strong>live account credential</strong>. It is sent in the
-    request body over HTTPS, never in the URL, and is not stored by this page or
-    logged by the server &mdash; only cookie <em>names</em> reach the logs. Use this
-    only on a deployment you trust. Requests carry this browser's user agent so they
-    match the session LinkedIn issued it to.
+    <div class="base">Base URL <b id="base">—</b></div>
   </div>
+</header>
 
-  <form class="panel" id="form">
-    <div class="row">
-      <label for="url">Profile URL</label>
-      <input type="text" id="url" placeholder="https://www.linkedin.com/in/williamhgates" required>
-    </div>
-    <div class="row">
-      <label for="cookies">Cookie header</label>
-      <div class="hint">
-        DevTools &rarr; Network &rarr; any linkedin.com request &rarr; Copy as cURL,
-        then everything after <code>Cookie:</code>. Leave blank to use the server's own session.
+<div class="grid">
+  <main>
+    <section>
+      <div class="eyebrow">Playground</div>
+      <h2>Try it</h2>
+      <p class="lede">
+        Runs against the live endpoint. Your cookies are sent in the request body,
+        never the URL, and are masked here and in the request preview.
+      </p>
+
+      <form class="card" id="form">
+        <div class="field">
+          <label for="url">Profile URL</label>
+          <input type="text" id="url" placeholder="https://www.linkedin.com/in/williamhgates" required>
+        </div>
+
+        <div class="field">
+          <div class="field-head">
+            <label for="cookies">Cookie header</label>
+            <button type="button" class="linkbtn" id="reveal">Show</button>
+          </div>
+          <div class="hint">
+            DevTools → Network → any linkedin.com request → Copy as cURL, then everything
+            after <code>Cookie:</code>. Leave blank to use the server's session, if it has one.
+          </div>
+          <textarea id="cookies" class="masked" spellcheck="false"
+            placeholder="bcookie=&quot;v=2&amp;...&quot;; li_at=...; JSESSIONID=&quot;ajax:...&quot;"></textarea>
+          <div class="cookiestate" id="cookiestate"></div>
+        </div>
+
+        <button type="submit" id="go">Send request</button>
+        <span class="status" id="status"></span>
+      </form>
+
+      <div id="rendered"></div>
+    </section>
+
+    <section>
+      <div class="eyebrow">Endpoint</div>
+      <h2>Fetch a profile</h2>
+      <p class="lede mono" style="font-size:13.5px">
+        <span style="color:var(--ok)">POST</span> /api/integrations/linkedin/profile
+      </p>
+      <p class="lede">
+        No authentication. The LinkedIn cookies are the only credential, and they
+        are yours — nothing is stored server-side.
+      </p>
+
+      <h3>Body</h3>
+      <div class="card">
+        <div class="param">
+          <div class="param-head">
+            <span class="pname">url</span><span class="chip">string</span><span class="chip req">required</span>
+          </div>
+          <p>A LinkedIn profile URL. Accepts any usual form — with or without scheme,
+             <code>www.</code> or a locale subdomain, trailing slash, tracking query
+             string. Company and school URLs are rejected.</p>
+        </div>
+        <div class="param">
+          <div class="param-head">
+            <span class="pname">cookie_header</span><span class="chip">string</span><span class="chip">optional</span>
+          </div>
+          <p>Your LinkedIn <code>Cookie</code> header, verbatim. Omit it to use the
+             server's own session. Supplied cookies get a short-lived client that is
+             closed after the request.</p>
+        </div>
+        <div class="param">
+          <div class="param-head">
+            <span class="pname">user_agent</span><span class="chip">string</span><span class="chip">optional</span>
+          </div>
+          <p>The user agent of the browser the cookies came from. LinkedIn binds a
+             session to the browser it issued it to, so a mismatch is something it can
+             score against. This page sends yours automatically.</p>
+        </div>
       </div>
-      <textarea id="cookies" placeholder='bcookie="v=2&..."; li_at=AQED...; JSESSIONID="ajax:..."; lidc=b=VB1'></textarea>
-    </div>
-    <button type="submit" id="go">Fetch profile</button>
-    <span class="status" id="status"></span>
-  </form>
 
-  <div id="out"></div>
+      <h3>Response</h3>
+      <div class="card">
+        <table>
+          <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td><code>name</code></td><td class="st">string</td><td class="st">Given and family name joined</td></tr>
+            <tr><td><code>headline</code></td><td class="st">string</td><td class="st"></td></tr>
+            <tr><td><code>location</code></td><td class="st">string</td><td class="st"></td></tr>
+            <tr><td><code>about</code></td><td class="st">string</td><td class="st">The summary section</td></tr>
+            <tr><td><code>profile_picture</code></td><td class="st">string</td><td class="st">Largest available rendition</td></tr>
+            <tr><td><code>background_image</code></td><td class="st">string</td><td class="st">Cover image</td></tr>
+            <tr><td><code>experience[]</code></td><td class="st">object</td><td class="st">title, company, employment_type, location, description, start_date, end_date, is_current</td></tr>
+            <tr><td><code>education[]</code></td><td class="st">object</td><td class="st">school, degree, field_of_study, activities, dates</td></tr>
+            <tr><td><code>skills[]</code></td><td class="st">string</td><td class="st">Capped at ~20 by the upstream call</td></tr>
+            <tr><td><code>certifications[]</code></td><td class="st">object</td><td class="st">name, authority, license_number, url, dates</td></tr>
+            <tr><td><code>languages[]</code></td><td class="st">object</td><td class="st">name, proficiency</td></tr>
+          </tbody>
+        </table>
+        <p class="note" style="margin-top:16px">
+          Dates are <code>YYYY-MM</code>, or <code>YYYY</code> when only a year is
+          recorded. A position with no end date is current. Missing fields are
+          <code>null</code>; missing collections are <code>[]</code>, never absent.
+        </p>
+      </div>
+
+      <h3>Errors</h3>
+      <div class="card">
+        <table>
+          <thead><tr><th>Code</th><th>HTTP</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><code>invalid_request</code></td><td class="st">422</td><td class="st">Body is malformed</td></tr>
+            <tr><td><code>invalid_profile_url</code></td><td class="st">400</td><td class="st">Not a <code>/in/&lt;slug&gt;</code> URL</td></tr>
+            <tr><td><code>profile_not_found</code></td><td class="st">404</td><td class="st">No such profile, or not visible to the session</td></tr>
+            <tr><td><code>session_expired</code></td><td class="st">503</td><td class="st">Cookies are stale, or none supplied</td></tr>
+            <tr><td><code>upstream_error</code></td><td class="st">502</td><td class="st">LinkedIn returned something unexpected</td></tr>
+            <tr><td><code>upstream_timeout</code></td><td class="st">504</td><td class="st">LinkedIn did not respond in time</td></tr>
+          </tbody>
+        </table>
+        <p class="note" style="margin-top:16px">
+          Match on <code>code</code>, not the status. LinkedIn serves 403 for both a
+          dead session and an unreachable profile; only the body separates them, and
+          this API does that for you.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <aside class="rail">
+    <div class="codebox">
+      <header><span class="t" id="reqtitle">Request</span>
+        <button class="copy" data-copy="reqcode">Copy</button></header>
+      <pre id="reqcode"></pre>
+    </div>
+    <div class="codebox">
+      <header><span class="t" id="restitle">Response</span>
+        <button class="copy" data-copy="rescode">Copy</button></header>
+      <pre id="rescode"><span class="redacted">Send a request to see the response.</span></pre>
+    </div>
+  </aside>
 </div>
 
 <script>
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ENDPOINT = "/api/integrations/linkedin/profile";
+$("base").textContent = location.origin;
 
+/* ---------- cookie handling: never render the value ---------- */
+function cookieNames(header) {
+  return header.split(";").map(p => p.trim().split("=")[0]).filter(Boolean);
+}
+function updateCookieState() {
+  const raw = $("cookies").value.trim();
+  const el = $("cookiestate");
+  if (!raw) { el.innerHTML = ""; renderRequest(); return; }
+  const names = cookieNames(raw);
+  const has = (n) => names.includes(n)
+    ? `<b>${n} ✓</b>` : `<span class="miss">${n} missing</span>`;
+  el.innerHTML = `${names.length} cookies &middot; ${has("li_at")} &middot; ${has("JSESSIONID")}`;
+  renderRequest();
+}
+$("cookies").addEventListener("input", updateCookieState);
+$("reveal").addEventListener("click", () => {
+  const t = $("cookies"), hidden = t.classList.toggle("masked");
+  $("reveal").textContent = hidden ? "Show" : "Hide";
+});
+
+/* ---------- JSON rendering with the cookie redacted ---------- */
+function highlight(json) {
+  return esc(json).replace(
+    /("(?:\\.|[^"\\])*")(\s*:)?|\b(true|false|null)\b|(-?\d+\.?\d*)/g,
+    (m, str, colon, lit, num) => {
+      if (str) return `<span class="${colon ? "tok-key" : "tok-str"}">${str}</span>${colon || ""}`;
+      if (lit) return `<span class="tok-lit">${lit}</span>`;
+      return `<span class="tok-num">${num}</span>`;
+    });
+}
+function requestBody(redact) {
+  const body = { url: $("url").value.trim() || "https://www.linkedin.com/in/<slug>" };
+  const raw = $("cookies").value.trim();
+  if (raw) {
+    body.cookie_header = redact
+      ? `<${cookieNames(raw).length} cookies hidden>` : raw;
+    body.user_agent = navigator.userAgent;
+  }
+  return body;
+}
+function renderRequest() {
+  const body = requestBody(true);
+  const curl =
+    `POST ${ENDPOINT}\nContent-Type: application/json\n\n` +
+    JSON.stringify(body, null, 2);
+  $("reqcode").innerHTML = highlight(curl)
+    .replace(/&lt;(\d+) cookies hidden&gt;/, '<span class="redacted">&lt;$1 cookies hidden&gt;</span>');
+}
+["url", "cookies"].forEach(id => $(id).addEventListener("input", renderRequest));
+renderRequest();
+
+/* ---------- copy ---------- */
+document.querySelectorAll(".copy").forEach(btn => {
+  btn.addEventListener("click", async () => {
+    await navigator.clipboard.writeText($(btn.dataset.copy).innerText);
+    const was = btn.textContent; btn.textContent = "Copied";
+    setTimeout(() => btn.textContent = was, 1200);
+  });
+});
+
+/* ---------- rendered profile ---------- */
 function dates(a, b, current) {
   if (!a && !b) return "";
   return esc(a || "?") + " – " + (current ? "Present" : esc(b || "?"));
 }
-
 function section(title, items, render) {
-  if (!items || !items.length) return "";
-  return `<h3>${title}</h3>` + items.map(render).join("");
+  return items && items.length ? `<h3>${title}</h3>` + items.map(render).join("") : "";
 }
-
-function render(d) {
+function renderProfile(d) {
   const p = d.profile;
-  const avatar = p.profile_picture
-    ? `<img src="${esc(p.profile_picture)}" alt="">` : "";
-  return `
-    <div class="panel">
-      <div class="card">
-        ${avatar}
-        <div>
-          <h2>${esc(p.name) || "<span class='empty'>no name</span>"}</h2>
-          <div class="hl">${esc(p.headline)}</div>
-          <div class="loc">${esc(p.location)}</div>
-        </div>
+  return `<div class="card" style="margin-top:20px">
+    <div class="who">
+      ${p.profile_picture ? `<img src="${esc(p.profile_picture)}" alt="">` : ""}
+      <div>
+        <h4>${esc(p.name) || '<span class="empty">no name</span>'}</h4>
+        <div class="hl">${esc(p.headline)}</div>
+        <div class="loc">${esc(p.location)}</div>
       </div>
-      ${p.about ? `<h3>About</h3><div>${esc(p.about)}</div>` : ""}
-      ${section("Experience", p.experience, e => `
-        <div class="item">
-          <b>${esc(e.title)}</b> &middot; ${esc(e.company)}
-          <div class="meta">${dates(e.start_date, e.end_date, e.is_current)}${
-            e.employment_type ? " &middot; " + esc(e.employment_type) : ""}${
-            e.location ? " &middot; " + esc(e.location) : ""}</div>
-        </div>`)}
-      ${section("Education", p.education, e => `
-        <div class="item">
-          <b>${esc(e.school)}</b>
-          <div class="meta">${[e.degree, e.field_of_study].filter(Boolean).map(esc).join(", ")}
-            ${dates(e.start_date, e.end_date, false) ? " &middot; " + dates(e.start_date, e.end_date, false) : ""}</div>
-        </div>`)}
-      ${section("Certifications", p.certifications, c => `
-        <div class="item"><b>${esc(c.name)}</b>
-          <div class="meta">${esc(c.authority)}</div></div>`)}
-      ${p.skills && p.skills.length ? `<h3>Skills</h3><div class="chips">${
-        p.skills.map(s => `<span class="chip">${esc(s)}</span>`).join("")}</div>` : ""}
-      ${p.languages && p.languages.length ? `<h3>Languages</h3><div class="chips">${
-        p.languages.map(l => `<span class="chip">${esc(l.name)}${
-          l.proficiency ? " · " + esc(l.proficiency.toLowerCase().replace(/_/g," ")) : ""}</span>`).join("")}</div>` : ""}
-      <details>
-        <summary>Raw JSON</summary>
-        <pre>${esc(JSON.stringify(d, null, 2))}</pre>
-      </details>
-    </div>`;
+    </div>
+    ${p.about ? `<h3>About</h3><div style="font-size:13.5px">${esc(p.about)}</div>` : ""}
+    ${section("Experience", p.experience, e => `<div class="item">
+        <b>${esc(e.title)}</b> &middot; ${esc(e.company)}
+        <div class="meta">${dates(e.start_date, e.end_date, e.is_current)}${
+          e.employment_type ? " &middot; " + esc(e.employment_type) : ""}${
+          e.location ? " &middot; " + esc(e.location) : ""}</div></div>`)}
+    ${section("Education", p.education, e => `<div class="item">
+        <b>${esc(e.school)}</b><div class="meta">${
+          [e.degree, e.field_of_study].filter(Boolean).map(esc).join(", ")}${
+          dates(e.start_date, e.end_date, false) ? " &middot; " + dates(e.start_date, e.end_date, false) : ""}</div></div>`)}
+    ${section("Certifications", p.certifications, c => `<div class="item">
+        <b>${esc(c.name)}</b><div class="meta">${esc(c.authority)}</div></div>`)}
+    ${p.skills?.length ? `<h3>Skills</h3><div class="chips">${
+      p.skills.map(s => `<span class="chip">${esc(s)}</span>`).join("")}</div>` : ""}
+    ${p.languages?.length ? `<h3>Languages</h3><div class="chips">${
+      p.languages.map(l => `<span class="chip">${esc(l.name)}${
+        l.proficiency ? " · " + esc(l.proficiency.toLowerCase().replace(/_/g, " ")) : ""}</span>`).join("")}</div>` : ""}
+  </div>`;
 }
 
+/* ---------- submit ---------- */
 $("form").addEventListener("submit", async (ev) => {
   ev.preventDefault();
-  const status = $("status"), out = $("out"), go = $("go");
+  const status = $("status"), go = $("go");
   go.disabled = true;
-  status.className = "status"; status.textContent = "Fetching…";
-  out.innerHTML = "";
-
-  const body = { url: $("url").value.trim() };
-  const cookies = $("cookies").value.trim();
-  if (cookies) {
-    body.cookie_header = cookies;
-    // LinkedIn binds a session to the browser it was issued to. Send this
-    // browser's real user agent so the request matches the cookies rather
-    // than claiming to be some other machine.
-    body.user_agent = navigator.userAgent;
-  }
+  status.className = "status"; status.textContent = "Sending…";
+  $("rendered").innerHTML = "";
+  $("rescode").textContent = "…";
+  $("restitle").className = "t";
 
   const t0 = performance.now();
   try {
-    const res = await fetch("/api/integrations/linkedin/profile", {
+    const res = await fetch(ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(requestBody(false)),
     });
     const data = await res.json();
     const ms = Math.round(performance.now() - t0);
-    if (!res.ok) {
-      status.className = "status err";
-      status.textContent = `${res.status} · ${ms} ms`;
-      out.innerHTML = `<div class="panel"><h3>${esc(data.error?.code || "error")}</h3>
-        <div>${esc(data.error?.message || "Request failed.")}</div>
-        ${data.error?.detail ? `<pre style="margin-top:12px">${esc(data.error.detail)}</pre>` : ""}</div>`;
-      return;
+    $("rescode").innerHTML = highlight(JSON.stringify(data, null, 2));
+    if (res.ok) {
+      status.className = "status ok"; status.textContent = `200 · ${ms} ms`;
+      $("restitle").className = "t ok"; $("restitle").textContent = `Response · 200`;
+      $("rendered").innerHTML = renderProfile(data);
+    } else {
+      status.className = "status err"; status.textContent = `${res.status} · ${ms} ms`;
+      $("restitle").className = "t err";
+      $("restitle").textContent = `Response · ${res.status} ${data.error?.code || ""}`;
     }
-    status.className = "status ok";
-    status.textContent = `200 · ${ms} ms`;
-    out.innerHTML = render(data);
   } catch (err) {
-    status.className = "status err";
-    status.textContent = "Network error";
-    out.innerHTML = `<div class="panel">${esc(err.message)}</div>`;
+    status.className = "status err"; status.textContent = "Network error";
+    $("rescode").textContent = err.message;
+    $("restitle").className = "t err";
   } finally {
     go.disabled = false;
   }
